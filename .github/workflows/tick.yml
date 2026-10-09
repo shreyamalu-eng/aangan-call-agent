@@ -1,0 +1,14 @@
+name: Every 5 minutes (SLA, Vaani poll, health)
+on:
+  schedule: [{ cron: "*/5 * * * *" }]
+  workflow_dispatch: {}
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      # A non-200 fails the job, and GitHub emails you: a second alert path if Telegram itself is down.
+      - run: |
+          code=$(curl -s -o out.json -w "%{http_code}" -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" "${{ secrets.APP_URL }}/api/cron/tick")
+          cat out.json; echo; echo "HTTP $code"
+          test "$code" = "200"
