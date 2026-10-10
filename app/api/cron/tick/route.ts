@@ -19,17 +19,30 @@ export async function GET(req: Request) {
   // 1. SLA escalations on unclaimed handoffs.
   try {
     const [l1, l2, br] = await Promise.all([setting("sla_l1_minutes", "15"), setting("sla_l2_minutes", "30"), setting("sla_breach_minutes", "60")]);
-    const open = await q<any>("select h.id, h.enquiry_id, h.sent_at, h.escalation_level, e.locality from handoffs h join enquiries e on e.id = h.enquiry_id where h.sent_at is not null and h.claimed_at is null and e.archived = false");
-    let n = 0;
+    // Test replays never page anyone. Real escalations are grouped: one Telegram message and one email per run.
+    const open = await q<any>("select h.id, h.enquiry_id, h.sent_at, h.escalation_level, e.locality from handoffs h join enquiries e on e.id = h.enquiry_id where h.sent_at is not null and h.claimed_at is null and e.archived = false and e.is_test is not true");
+    const hits: { enquiry_id: string; locality: string | null; lvl: number }[] = [];
     for (const h of open) {
       const lvl = slaLevel(new Date(h.sent_at), new Date(), Number(l1), Number(l2), Number(br));
       if (lvl <= h.escalation_level) continue;
       await q("update handoffs set escalation_level = $2, sla_breached = $3 where id = $1", [h.id, lvl, lvl >= 3]);
-      const link = `<a href="${appUrl()}/calls/${h.enquiry_id}">open lead</a>`;
-      const who = lvl === 1 ? "front desk lead" : lvl === 2 ? "Nikhil" : "everyone";
-      await tg.alert(`⏱ Lead in ${tg.esc(h.locality ?? "Pune")} unclaimed ${lvl === 3 ? "past 60 min — SLA breached" : lvl === 2 ? "30 min" : "15 min"} · alerting ${who} · ${link}`);
-      if (lvl >= 2) await sendEmail({ to: process.env.FOUNDER_EMAIL || "", subject: `Unclaimed lead (${lvl === 3 ? "SLA breached" : "30 min"})`, html: `<p>A qualified lead in ${h.locality ?? "Pune"} hasn't been claimed.</p><p><a href="${appUrl()}/calls/${h.enquiry_id}">Open the lead</a></p>` });
-      n++;
+      hits.push({ enquiry_id: h.enquiry_id, locality: h.locality, lvl });
+    }
+    const n = hits.length;
+    if (n) {
+      const age = (lvl: number) => (lvl === 3 ? "past 60 min — SLA breached" : lvl === 2 ? "30 min" : "15 min");
+      const top = Math.max(...hits.map((x) => x.lvl));
+      const who = top === 1 ? "front desk lead" : top === 2 ? "Nikhil" : "everyone";
+      const lines = hits.map((x) => `• ${tg.esc(x.locality ?? "Pune")} — unclaimed ${age(x.lvl)} · <a href="${appUrl()}/calls/${x.enquiry_id}">open lead</a>`);
+      await tg.alert(n === 1
+        ? `⏱ Lead in ${tg.esc(hits[0].locality ?? "Pune")} unclaimed ${age(hits[0].lvl)} · alerting ${who} · <a href="${appUrl()}/calls/${hits[0].enquiry_id}">open lead</a>`
+        : `⏱ <b>${n} leads unclaimed</b> · alerting ${who}\n${lines.join("\n")}`);
+      const urgent = hits.filter((x) => x.lvl >= 2);
+      if (urgent.length) await sendEmail({
+        to: process.env.FOUNDER_EMAIL || "",
+        subject: urgent.length === 1 ? `Unclaimed lead (${urgent[0].lvl === 3 ? "SLA breached" : "30 min"})` : `${urgent.length} unclaimed leads`,
+        html: `<p>${urgent.length === 1 ? "A qualified lead hasn't" : `${urgent.length} qualified leads haven't`} been claimed.</p><ul>${urgent.map((x) => `<li>${x.locality ?? "Pune"} — ${age(x.lvl)} · <a href="${appUrl()}/calls/${x.enquiry_id}">open</a></li>`).join("")}</ul>`,
+      });
     }
     out.sla = { open: open.length, escalated: n };
   } catch (e) { out.sla = { error: String(e).slice(0, 200) }; }
