@@ -5,6 +5,8 @@ import { isAdmin, canSeePii } from "@/lib/auth";
 import { maskPhone } from "@/lib/normalize";
 import { StatusPill, CardHead, fmtIST, fmtDur, inr } from "@/components/ui";
 import { Icon } from "@/components/icons";
+import { BookingCard } from "@/components/BookingCard";
+import { availableSlots, pickSlots } from "@/lib/calcom";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +24,11 @@ export default async function CallDetail({ params, searchParams }: { params: Pro
   const { e, calls, verdict: v } = d;
   const hits: number[] = (v?.price_hits ?? []).map((h: any) => h.turn);
   const booked = d.consults.find((c: any) => c.status === "booked");
+  let slots: string[] = [];
+  let calError: string | null = null;
+  if (!booked) {
+    try { slots = pickSlots(await availableSlots(14), e.preferred_slots ?? null, 6); } catch (err) { calError = String(err).replace(/^Error: /, "").slice(0, 160); }
+  }
 
   return (
     <>
@@ -75,6 +82,15 @@ export default async function CallDetail({ params, searchParams }: { params: Pro
           {(v?.watch_outs ?? []).length > 0 && <p><b>Watch for:</b> {v.watch_outs.join(" ")}</p>}
         </div>
       </section>
+
+      {booked ? (
+        <section className="card" id="book">
+          <CardHead title="Consultation booked" />
+          <p className="banner ok" role="status"><span aria-hidden="true">✓ </span>{fmtIST(booked.booked_start)} with {booked.booked_by ?? "a designer"}{booked.calcom_booking_uid ? " · in Cal.com" : " · agreed by phone"}</p>
+        </section>
+      ) : (
+        <BookingCard enquiryId={e.id} slots={slots} calError={calError} preferred={e.preferred_slots ?? null} defaultDesigner={e.claimed_by_name ?? null} isTest={Boolean(e.is_test)} />
+      )}
 
       {calls.map((c: any, i: number) => {
         const last = i === calls.length - 1;

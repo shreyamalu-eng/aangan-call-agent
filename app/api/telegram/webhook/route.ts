@@ -7,6 +7,7 @@ import { sendEmail } from "@/lib/email";
 import { handoffCard, claimButtons, passReasonButtons, slotLabel } from "@/lib/cards";
 import { ruleVerdict } from "@/lib/verdict";
 import { appUrl } from "@/lib/env";
+import { bookConsultation } from "@/lib/booking";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -59,11 +60,16 @@ export async function POST(req: Request) {
       try {
         const e = await one<{ preferred_slots: string | null }>("select preferred_slots from enquiries where id = $1", [c?.r.enquiry_id]);
         const slots = cal.pickSlots(await cal.availableSlots(7), e?.preferred_slots ?? null);
+        const bookLink = `<a href="${appUrl()}/calls/${c?.r.enquiry_id}#book">book it on the dashboard</a>`;
+        if (!slots.length) {
+          await tg.send(chatId, `📅 <b>${tg.esc(name)}</b>: Cal.com has no open times right now. Call the caller to agree a time, then ${bookLink}. (Caller asked for: ${tg.esc(e?.preferred_slots ?? "no preference")})`);
+          return NextResponse.json({ ok: true });
+        }
         const buttons = slots.map((s) => [{ text: slotLabel(s), callback_data: `slot:${handoffId}:${Math.floor(new Date(s).getTime() / 1000)}` }]);
         buttons.push([{ text: "None fit — I'll call to agree a time", callback_data: `call:${handoffId}` }]);
         await tg.send(chatId, `📅 <b>${tg.esc(name)}</b>, pick the consultation time (caller asked for: ${tg.esc(e?.preferred_slots ?? "no preference")})`, buttons);
       } catch (err) {
-        await tg.send(chatId, `📅 ${tg.esc(name)}: couldn't load Cal.com slots (${tg.esc(String(err).slice(0, 80))}). Call the caller to agree a time, then mark it booked in the dashboard.`);
+        await tg.send(chatId, `📅 ${tg.esc(name)}: couldn't load Cal.com slots (${tg.esc(String(err).slice(0, 80))}). Call the caller to agree a time, then <a href="${appUrl()}/calls/${c?.r.enquiry_id}#book">book it on the dashboard</a>.`);
       }
     } else if (action === "pass") {
       await tg.answer(cb.id, "Why are you passing?");
@@ -76,24 +82,15 @@ export async function POST(req: Request) {
       if (chatId && msgId) await tg.edit(chatId, msgId, `Pass recorded: ${tg.esc(name)} (${tg.esc(REASONS[arg] ?? arg)})`, []);
     } else if (action === "slot") {
       const startIso = new Date(Number(arg) * 1000).toISOString();
-      const r = await one<any>(`select h.*, e.id as enquiry_id, e.scope_text, e.locality, p.full_name, p.email, p.phone_e164 from handoffs h join enquiries e on e.id = h.enquiry_id left join people p on p.id = e.person_id where h.id = $1`, [handoffId]);
-      if (!r) throw new Error("handoff not found");
-      const records = process.env.TEAM_EMAIL || process.env.FOUNDER_EMAIL;
-      const attendeeEmail = r.email || records;
-      if (!attendeeEmail) throw new Error("No caller email and no TEAM_EMAIL for the booking");
-      const booking = await cal.book({ start: startIso, name: r.full_name || "Aangan enquiry", email: attendeeEmail, phone: r.phone_e164, notes: `Designer: ${name}. Scope: ${r.scope_text ?? "—"}. Area: ${r.locality ?? "—"}. Lead: ${appUrl()}/calls/${r.enquiry_id}` });
-      await q(`insert into consultations (enquiry_id, status, booked_start, calcom_booking_uid, booked_by) values ($1,'booked',$2,$3,$4)`, [r.enquiry_id, startIso, booking?.uid ?? null, name]);
-      await q(`insert into outcomes (enquiry_id, stage, set_by) values ($1,'consultation_booked',$2)`, [r.enquiry_id, name]);
-      if (r.hubspot_deal_id) { try { await hs.moveDeal(r.hubspot_deal_id, "consultation_booked"); } catch (e) { console.error(e); } }
-      if (r.email) {
-        await sendEmail({ to: r.email, subject: "Your Aangan Studio consultation", html: `<p>Hello ${tg.esc(r.full_name?.split(" ")[0] ?? "")},</p><p>Your consultation with ${tg.esc(name)} from Aangan Studio is booked for <b>${tg.esc(slotLabel(startIso))}</b> (IST). ${tg.esc(name)} will call you beforehand to confirm the details.</p><p>Thank you,<br>Aangan Studio</p>` });
-      }
-      await sendEmail({ to: records ?? "", subject: `Consultation booked: ${slotLabel(startIso)} · ${r.locality ?? ""}`, html: `<p>${tg.esc(name)} booked ${tg.esc(slotLabel(startIso))}.</p><p><a href="${appUrl()}/calls/${r.enquiry_id}">Lead</a></p>` });
+      const h = await one<{ enquiry_id: string }>("select enquiry_id from handoffs where id = $1", [handoffId]);
+      if (!h) throw new Error("handoff not found");
+      const b = await bookConsultation({ enquiryId: h.enquiry_id, startIso, designer: name, calendar: true });
       await tg.answer(cb.id, "Booked.");
-      if (chatId && msgId) await tg.edit(chatId, msgId, `✅ Consultation booked: <b>${tg.esc(slotLabel(startIso))}</b> with ${tg.esc(name)}${r.email ? " · caller emailed" : " · call the caller to confirm"}`, []);
+      if (chatId && msgId) await tg.edit(chatId, msgId, `✅ Consultation booked: <b>${tg.esc(b.when)}</b> with ${tg.esc(name)}${b.emailedCaller ? " · caller emailed" : " · call the caller to confirm"}`, []);
     } else if (action === "call") {
-      await tg.answer(cb.id, "Okay — mark it booked in the dashboard once agreed.");
-      if (chatId && msgId) await tg.edit(chatId, msgId, `📞 ${tg.esc(name)} will call the caller to agree a time.`, []);
+      await tg.answer(cb.id, "Okay — book it on the dashboard once agreed.");
+      const hc = await one<{ enquiry_id: string }>("select enquiry_id from handoffs where id = $1", [handoffId]);
+      if (chatId && msgId) await tg.edit(chatId, msgId, `📞 ${tg.esc(name)} will call the caller to agree a time, then <a href="${appUrl()}/calls/${hc?.enquiry_id}#book">book it on the dashboard</a>.`, []);
     }
   } catch (e) {
     console.error("[telegram]", e);

@@ -109,7 +109,7 @@ export default async function Pipeline({ searchParams }: { searchParams: Promise
                       <td data-label="Locality">{r.locality ?? "—"}{r.is_test && <> <span className="tag">replay</span></>}</td>
                       <td data-label="Stage">{r.stage ? <span className={`pill ${STAGE_CLS[r.stage] ?? ""}`}>{STAGE[r.stage] ?? r.stage}</span> : r.claimed_by_name ? <span className="pill soft">Claimed</span> : r.sent_at ? <span className="pill warn">Waiting for a designer</span> : <span className="pill">Qualified</span>}</td>
                       <td data-label="Designer">{r.claimed_by_name ?? "—"}</td>
-                      <td data-label="Consultation">{r.consult_at ? fmtIST(r.consult_at) : "—"}</td>
+                      <td data-label="Consultation">{r.consult_at ? fmtIST(r.consult_at) : <Link href={`/calls/${r.id}#book`} className="btn outline sm">Book</Link>}</td>
                       <td data-label="HubSpot">{r.hubspot_deal_id ? <a href={`https://${HUBSPOT_HOST}/contacts/${HUBSPOT_PORTAL}/record/0-3/${r.hubspot_deal_id}`} target="_blank" rel="noopener noreferrer" className="nowrap">View in HubSpot<span className="visually-hidden"> (opens in a new tab)</span></a> : "—"}</td>
                       <td className="act"><Link href={`/calls/${r.id}`} className="iconbtn outline" aria-label={`Open call from ${fmtIST(r.started_at)}${r.locality ? `, ${r.locality}` : ""}`} title="Open call"><Icon name="eye" /></Link></td>
                     </tr>
