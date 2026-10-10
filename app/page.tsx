@@ -6,6 +6,7 @@ import { Kpi, ChangePill, StatusPill, HBars, Empty, CardHead, CardError, Gauge, 
 import { AreaChart } from "@/components/AreaChart";
 import { DateFilter } from "@/components/DateFilter";
 import { Icon } from "@/components/icons";
+import { LiveRefresh } from "@/components/LiveRefresh";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +20,7 @@ export default async function Overview({ searchParams }: { searchParams: Promise
   const prevF = previousPeriod(f);
   const period = periodName(f);
 
-  const [dataR, attR, prevR] = await Promise.allSettled([overview(f), attention(), prevF ? kpiCounts(prevF) : Promise.resolve(null)]);
+  const [dataR, attR, prevR] = await Promise.allSettled([overview(f), attention(f.tests === "0"), prevF ? kpiCounts(prevF) : Promise.resolve(null)]);
   const data = dataR.status === "fulfilled" ? dataR.value : null;
   const att = attR.status === "fulfilled" ? attR.value : null;
   const prev = prevR.status === "fulfilled" ? prevR.value : null;
@@ -30,8 +31,12 @@ export default async function Overview({ searchParams }: { searchParams: Promise
       <div>
         <h1>Overview</h1>
         <p className="sub">Every enquiry call the agent answered, what happened to it, and what it cost.</p>
+        <p className="sub" style={{ fontSize: 13, marginTop: 4 }}>
+          {f.tests === "0" ? "Real calls only. " : "Includes test replays (tagged “replay”). "}
+          <Link href={withParams("/", f, { tests: f.tests === "0" ? undefined : "0" })}>{f.tests === "0" ? "Show test replays" : "Hide test replays"}</Link>
+        </p>
       </div>
-      <DateFilter {...menu} />
+      <div className="btn-row" style={{ alignItems: "center" }}><LiveRefresh /><DateFilter {...menu} /></div>
     </header>
   );
 
@@ -103,6 +108,7 @@ export default async function Overview({ searchParams }: { searchParams: Promise
                       <span className="sub" style={{ fontSize: 13 }}>{fmtIST(a.started_at)}</span>
                       {a.sent_at && !a.claimed_at && a.escalation_level >= 1 && <span className="tag bad"><span aria-hidden="true">⏱</span>unclaimed {a.escalation_level >= 3 ? "> 60 min" : a.escalation_level === 2 ? "> 30 min" : "> 15 min"}</span>}
                       {a.priority === "previously_dropped" && <span className="tag warn">previously dropped</span>}
+                      {a.is_test && <span className="tag">replay</span>}
                       {(a.flags ?? []).filter((x: string) => ["price_figure_spoken", "frustrated", "wants_human"].includes(x)).map((x: string) => <span key={x} className="tag bad">{x === "price_figure_spoken" ? "price figure spoken" : x.replace(/_/g, " ")}</span>)}
                     </div>
                   </li>

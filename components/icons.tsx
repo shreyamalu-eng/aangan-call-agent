@@ -22,6 +22,9 @@ const P: Record<string, React.ReactNode> = {
   calendar: <><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M16 3v4M8 3v4M3 10h18" /></>,
   compass: <><circle cx="12" cy="12" r="9" /><path d="m15.5 8.5-2 5-5 2 2-5Z" /></>,
   rupee: <><path d="M6 4h12M6 9h12" /><path d="M9 4c4 0 6 1.5 6 5s-3 5-7 5l7 6" /></>,
+  mic: <><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0" /><path d="M12 18v3" /></>,
+  phoneOff: <><path d="M10.7 13.3a12 12 0 0 0 2.6 1.9l1.3-2 4.2 1.6V19a2 2 0 0 1-2 2A17 17 0 0 1 5.6 15.4" /><path d="M3.6 12.5A17 17 0 0 1 3 5a2 2 0 0 1 2-2h3.2l1.6 4.2-2 1.3" /><path d="M3 21 21 3" /></>,
+  refresh: <><path d="M20 11a8 8 0 0 0-14.6-4.5L4 8" /><path d="M4 3v5h5" /><path d="M4 13a8 8 0 0 0 14.6 4.5L20 16" /><path d="M20 21v-5h-5" /></>,
   alert: <><path d="M12 3 2 20h20Z" /><path d="M12 10v4M12 17.5v.5" /></>,
 };
 

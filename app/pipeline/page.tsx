@@ -8,6 +8,7 @@ import { CardHead, CardError, Empty, fmtIST, fmtDay, inr, initialsOf } from "@/c
 import { AreaChart } from "@/components/AreaChart";
 import { DateFilter } from "@/components/DateFilter";
 import { Icon } from "@/components/icons";
+import { LiveRefresh } from "@/components/LiveRefresh";
 
 export const dynamic = "force-dynamic";
 
@@ -50,7 +51,7 @@ export default async function Pipeline({ searchParams }: { searchParams: Promise
           <h1>Pipeline</h1>
           <p className="sub">Qualified leads, what they could be worth, and how far each one has got.</p>
         </div>
-        <DateFilter {...dateMenu("/pipeline", f)} />
+        <div className="btn-row" style={{ alignItems: "center" }}><LiveRefresh /><DateFilter {...dateMenu("/pipeline", f)} /></div>
       </header>
 
       <section className="grid split">
@@ -105,7 +106,7 @@ export default async function Pipeline({ searchParams }: { searchParams: Promise
                   return (
                     <tr key={r.id}>
                       <td className="lead"><div className="who"><span className="initials" aria-hidden="true">{initialsOf(name)}</span><div><b>{name ?? "Caller"}</b><span className="sub">{fmtIST(r.started_at)}</span><span className="sub">{pii ? r.phone_e164 ?? "no number" : maskPhone(r.phone_e164)}</span></div></div></td>
-                      <td data-label="Locality">{r.locality ?? "—"}</td>
+                      <td data-label="Locality">{r.locality ?? "—"}{r.is_test && <> <span className="tag">replay</span></>}</td>
                       <td data-label="Stage">{r.stage ? <span className={`pill ${STAGE_CLS[r.stage] ?? ""}`}>{STAGE[r.stage] ?? r.stage}</span> : r.claimed_by_name ? <span className="pill soft">Claimed</span> : r.sent_at ? <span className="pill warn">Waiting for a designer</span> : <span className="pill">Qualified</span>}</td>
                       <td data-label="Designer">{r.claimed_by_name ?? "—"}</td>
                       <td data-label="Consultation">{r.consult_at ? fmtIST(r.consult_at) : "—"}</td>

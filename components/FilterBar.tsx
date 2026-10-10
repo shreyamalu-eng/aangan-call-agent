@@ -15,8 +15,11 @@ export function FilterBar({ f, base }: { f: Record<string, string>; base: string
       </label>
       <label htmlFor="f-from">From<input id="f-from" type="date" name="from" defaultValue={f.from ?? ""} /></label>
       <label htmlFor="f-to">To<input id="f-to" type="date" name="to" defaultValue={f.to ?? ""} /></label>
-      <label htmlFor="f-tests" className="check">
-        <input id="f-tests" type="checkbox" name="tests" value="1" defaultChecked={f.tests === "1"} /> Include replays
+      <label htmlFor="f-tests">Test replays
+        <select id="f-tests" name="tests" defaultValue={f.tests === "0" ? "0" : ""}>
+          <option value="">Show (labelled)</option>
+          <option value="0">Hide</option>
+        </select>
       </label>
       <button type="submit" className="btn sm">Apply</button>
       {active && <Link className="btn outline sm" href={base}>Clear filters</Link>}

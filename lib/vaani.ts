@@ -30,6 +30,18 @@ export async function patchAgent(agentId: string, section: "persona" | "training
   return fetchJson(`${BASE}/api/agent/${agentId}/${section}`, { method: "PATCH", headers: h(), body: JSON.stringify(body), timeoutMs: 20000 });
 }
 
+/**
+ * POST /api/trigger-call/ ("Create Dispatch"). medium "webrtc" returns a LiveKit token + URL for an
+ * in-browser call; "telephony" makes Vaani ring contact_number.
+ */
+export async function triggerCall(body:
+  | { medium: "webrtc"; primary_language?: string; secondary_language?: string }
+  | { medium: "telephony"; contact_number: string; name: string }) {
+  const agentId = process.env.VAANI_AGENT_ID;
+  if (!agentId) throw new Error("VAANI_AGENT_ID is not set");
+  return fetchJson<any>(`${BASE}/api/trigger-call/`, { method: "POST", headers: h(), body: JSON.stringify({ agent_id: agentId, metadata: {}, ...body }), timeoutMs: 20000 });
+}
+
 export async function callHistory(page = 1, pageSize = 50) {
   const r = await fetchJson<any>(`${BASE}/api/call-history?page=${page}&page_size=${pageSize}`, { headers: h() });
   return (r?.data ?? []) as any[];

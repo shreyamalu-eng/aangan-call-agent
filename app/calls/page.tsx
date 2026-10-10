@@ -6,6 +6,8 @@ import { withParams } from "@/lib/period";
 import { StatusPill, Empty, CardError, fmtIST, fmtDur, initialsOf } from "@/components/ui";
 import { FilterBar } from "@/components/FilterBar";
 import { Icon } from "@/components/icons";
+import { CallPanel } from "@/components/CallPanel";
+import { LiveRefresh } from "@/components/LiveRefresh";
 
 export const dynamic = "force-dynamic";
 
@@ -22,10 +24,14 @@ export default async function Calls({ searchParams }: { searchParams: Promise<Re
       <header className="page-head">
         <div>
           <h1>Calls</h1>
-          <p className="sub">Every completed call, qualified or not, with its recording and transcript. Newest first. Phone numbers are masked.</p>
+          <p className="sub">Start a call with the agent, then see every call with its recording, transcript and verdict. Phone numbers are masked.</p>
         </div>
+        <LiveRefresh />
       </header>
       {f.archived && <p className="banner ok" role="status">Replayed test rows archived (hidden, not deleted).</p>}
+      {f.replayed && <p className="banner ok" role="status">{f.replayed} test enquiries replayed. They're tagged “replay” below.</p>}
+
+      <CallPanel />
 
       <section className="card" aria-labelledby="all-calls">
         <div className="card-head">

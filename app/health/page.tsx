@@ -1,8 +1,11 @@
 import { runHealth } from "@/lib/health";
 import { q } from "@/lib/db";
 import { CardHead, Empty, fmtIST } from "@/components/ui";
+import { OPTIONAL } from "@/lib/env";
 
 export const dynamic = "force-dynamic";
+
+const GROUP: Record<string, string> = { core: "Core", vaani: "Vaani", telegram: "Telegram", hubspot: "HubSpot", calcom: "Cal.com", resend: "Resend (email)", ai: "AI second opinion", dashboard: "Dashboard" };
 
 const Status = ({ ok }: { ok: boolean }) => <span className={`pill ${ok ? "good" : "bad"}`}><span aria-hidden="true">{ok ? "✓" : "✕"}</span>{ok ? "OK" : "Failing"}</span>;
 
@@ -36,11 +39,16 @@ export default async function Health() {
 
       <section className="card">
         <CardHead title="Configuration" sub="Which settings are present. Values are never shown." />
+        <div className="legend"><span><span className="tag good">✓ set</span></span><span><span className="tag">○ optional, default in use</span></span><span><span className="tag bad">✕ required, missing</span></span></div>
         <ul className="rows">
           {Object.entries(h.env).map(([g, ks]) => (
             <li key={g}>
-              <b style={{ textTransform: "capitalize" }}>{g}</b>
-              <div className="tags">{Object.entries(ks).map(([k, v]) => <span key={k} className={`tag ${v ? "" : "bad"}`}><span aria-hidden="true">{v ? "✓" : "✕"}</span>{k}<span className="visually-hidden">{v ? " set" : " missing"}</span></span>)}</div>
+              <b>{GROUP[g] ?? g}</b>
+              <div className="tags">{Object.entries(ks).map(([k, v]) => {
+                const opt = !v && OPTIONAL[k];
+                return <span key={k} className={`tag ${v ? "good" : opt ? "" : "bad"}`} title={opt || undefined}><span aria-hidden="true">{v ? "✓" : opt ? "○" : "✕"}</span>{k}<span className="visually-hidden">{v ? " set" : opt ? ` optional, not set: ${opt}` : " missing"}</span></span>;
+              })}</div>
+              {Object.entries(ks).filter(([k, v]) => !v && OPTIONAL[k]).map(([k]) => <p key={k} className="sub" style={{ fontSize: 13 }}><code>{k}</code> {OPTIONAL[k]}</p>)}
             </li>
           ))}
         </ul>

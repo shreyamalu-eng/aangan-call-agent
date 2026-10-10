@@ -4,7 +4,8 @@ export type Filters = { outcome?: string; from?: string; to?: string; area?: str
 
 const where = (f: Filters, params: unknown[]) => {
   const w = ["(e.archived is not true)"];
-  if (f.tests !== "1") w.push("(e.is_test is not true)");
+  // Replayed test rows show by default (labelled "replay"); tests=0 hides them.
+  if (f.tests === "0") w.push("(e.is_test is not true)");
   if (f.outcome) { params.push(f.outcome); w.push(`e.status = $${params.length}`); }
   if (f.area) { params.push(`%${f.area}%`); w.push(`e.locality ilike $${params.length}`); }
   if (f.from) { params.push(f.from); w.push(`c.started_at >= $${params.length}::date`); }
@@ -61,14 +62,14 @@ export async function overview(f: Filters) {
   return { k, byHour, bySource, byArea, declinedBy, cost, signed, avg };
 }
 
-export async function attention() {
+export async function attention(hideTests = false) {
   return q<any>(`
-    select e.id, e.status, e.locality, e.priority, h.sent_at, h.claimed_at, h.escalation_level, v.flags, c.started_at
+    select e.id, e.status, e.locality, e.priority, e.is_test, h.sent_at, h.claimed_at, h.escalation_level, v.flags, c.started_at
     from enquiries e
     left join handoffs h on h.enquiry_id = e.id
     left join lateral (select flags from verdicts where enquiry_id = e.id order by created_at desc limit 1) v on true
     left join lateral (select started_at from calls where enquiry_id = e.id order by started_at desc limit 1) c on true
-    where e.archived is not true and (
+    where e.archived is not true ${hideTests ? "and e.is_test is not true" : ""} and (
       (h.sent_at is not null and h.claimed_at is null and h.escalation_level >= 1)
       or e.status in ('complaint','hold_designer_confirm')
       or e.priority = 'previously_dropped'
