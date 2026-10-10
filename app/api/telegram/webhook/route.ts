@@ -65,7 +65,7 @@ export async function POST(req: Request) {
       // Slot picker: at most 3 open times that fit the caller's own windows.
       try {
         const e = await one<{ preferred_slots: string | null }>("select preferred_slots from enquiries where id = $1", [c?.r.enquiry_id]);
-        const slots = cal.pickSlots(await cal.availableSlots(7), e?.preferred_slots ?? null);
+        const slots = cal.pickSlots(await cal.availableSlots(45), e?.preferred_slots ?? null);
         const bookLink = `<a href="${appUrl()}/calls/${c?.r.enquiry_id}#book">book it on the dashboard</a>`;
         if (!slots.length) {
           await tg.send(chatId, `📅 <b>${tg.esc(name)}</b>: Cal.com has no open times right now. Call the caller to agree a time, then ${bookLink}. (Caller asked for: ${tg.esc(e?.preferred_slots ?? "no preference")})`);

@@ -44,7 +44,7 @@ export function BookingCard({ enquiryId, slots, calError, preferred, defaultDesi
       <div style={{ display: "grid", gap: 10 }}>
         <h3>Open times in Cal.com</h3>
         {calError ? <p className="banner bad">Couldn't load Cal.com times: {calError}</p>
-          : slots.length === 0 ? <p className="banner">Cal.com has no open times in the next 14 days. Check your availability in Cal.com, or agree a time with the caller and record it below.</p>
+          : slots.length === 0 ? <p className="banner">Cal.com has no open times in the next 6 weeks. Check your availability in Cal.com, or agree a time with the caller and record it below.</p>
           : <div className="btn-row">{slots.map((s) => (
               <button key={s} type="button" className="btn outline" onClick={() => book(s, true)} disabled={!!busy}>{busy === s ? "Booking…" : label(s)}</button>
             ))}</div>}

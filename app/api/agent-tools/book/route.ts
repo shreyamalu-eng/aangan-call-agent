@@ -23,7 +23,7 @@ export async function POST(req: Request) {
   if (!phone) return say("Before I book, could you give me the best number to reach you on?", { ok: false });
   try {
     // Only book a time that is genuinely still open.
-    const open = await availableSlots(14);
+    const open = await availableSlots(45);
     if (!open.some((s) => Math.abs(new Date(s).getTime() - start.getTime()) < 60_000)) {
       return say("That time was just taken. Let me check the next open times for you.", { ok: false });
     }

@@ -27,7 +27,7 @@ export default async function CallDetail({ params, searchParams }: { params: Pro
   let slots: string[] = [];
   let calError: string | null = null;
   if (!booked) {
-    try { slots = pickSlots(await availableSlots(14), e.preferred_slots ?? null, 6); } catch (err) { calError = String(err).replace(/^Error: /, "").slice(0, 160); }
+    try { slots = pickSlots(await availableSlots(45), e.preferred_slots ?? null, 6); } catch (err) { calError = String(err).replace(/^Error: /, "").slice(0, 160); }
   }
 
   return (

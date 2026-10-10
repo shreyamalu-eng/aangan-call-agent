@@ -14,7 +14,7 @@ async function handle(req: Request) {
   const p = await toolParams(req);
   const preference = String(p.preference ?? p.preferred_times ?? p.preferred_slots ?? "").slice(0, 200) || null;
   try {
-    const picks = pickSlots(await availableSlots(14), preference, 3);
+    const picks = pickSlots(await availableSlots(45), preference, 3);
     if (!picks.length) return say("I can't see open consultation times in the calendar right now. I'll note the times that suit you and a designer will confirm.", { ok: false, options: [] });
     const options = picks.map((iso, i) => ({ option: i + 1, start_iso: iso, label: ist(iso) }));
     return say(`I have ${options.map((o) => o.label).join("; or ")}. Which one suits you?`, { options });
