@@ -24,9 +24,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <Link href="/calls">All calls</Link>
               <Link href="/calls?outcome=qualified">Qualified</Link>
               <Link href="/health">Health</Link>
-              <Link href="/settings">{admin ? "Settings" : "Sign in"}</Link>
+              <Link href="/settings">Settings</Link>
             </nav>
-            <p className="sub hide-sm" style={{ fontSize: 13 }}>{admin ? "Signed in: full details" : "Evaluator view: phone numbers masked"}</p>
+            <p className="sub hide-sm" style={{ fontSize: 13 }}>{process.env.DASHBOARD_PASSWORD ? (admin ? "Signed in: full details" : "Phone numbers masked") : "Open dashboard: phone numbers masked"}</p>
           </aside>
           <main id="main">{children}</main>
         </div>

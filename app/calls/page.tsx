@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { callList } from "@/lib/queries";
-import { isAdmin } from "@/lib/auth";
+import { isAdmin, canSeePii } from "@/lib/auth";
 import { maskPhone } from "@/lib/normalize";
 import { StatusPill, Empty, fmtIST, fmtDur } from "@/components/ui";
 import { FilterBar } from "@/components/FilterBar";
@@ -10,6 +10,7 @@ export const dynamic = "force-dynamic";
 export default async function Calls({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const f = await searchParams;
   const admin = await isAdmin();
+  const pii = await canSeePii();
   let rows: any[] = [];
   let error: string | null = null;
   try { rows = await callList(f); } catch (e) { error = String(e).slice(0, 200); }
@@ -34,7 +35,7 @@ export default async function Calls({ searchParams }: { searchParams: Promise<Re
                 <tr key={r.id}>
                   <td data-label="When"><Link href={`/calls/${r.id}`}>{fmtIST(r.started_at)}</Link>{!r.in_hours && <span className="tag" style={{ marginLeft: 6 }}>after hours</span>}{r.is_test && <span className="tag" style={{ marginLeft: 6 }}>replay</span>}</td>
                   <td data-label="Outcome"><StatusPill status={r.status} />{r.call_count > 1 && <span className="tag" style={{ marginLeft: 6 }}>{r.call_count} calls merged</span>}{r.state === "failed" && <span className="tag" style={{ marginLeft: 6 }}>processing failed</span>}</td>
-                  <td data-label="Caller">{r.full_name ? (admin ? r.full_name : r.full_name.split(" ")[0]) : "—"}<br /><span className="sub" style={{ fontSize: 13 }}>{admin ? r.phone_e164 ?? "no number" : maskPhone(r.phone_e164)}</span></td>
+                  <td data-label="Caller">{r.full_name ? (pii ? r.full_name : r.full_name.split(" ")[0]) : "—"}<br /><span className="sub" style={{ fontSize: 13 }}>{pii ? r.phone_e164 ?? "no number" : maskPhone(r.phone_e164)}</span></td>
                   <td data-label="Locality">{r.locality ?? "—"}</td>
                   <td data-label="Property" className="hide-sm">{r.size_text ?? r.segment ?? "—"}</td>
                   <td data-label="Length" className="num hide-sm">{fmtDur(r.duration_s)}</td>

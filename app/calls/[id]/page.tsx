@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { enquiryDetail } from "@/lib/queries";
-import { isAdmin } from "@/lib/auth";
+import { isAdmin, canSeePii } from "@/lib/auth";
 import { maskPhone } from "@/lib/normalize";
 import { StatusPill, fmtIST, fmtDur, inr } from "@/components/ui";
 
@@ -17,6 +17,7 @@ export default async function CallDetail({ params, searchParams }: { params: Pro
   const d = await enquiryDetail(id);
   if (!d) notFound();
   const admin = await isAdmin();
+  const pii = await canSeePii();
   const { e, calls, verdict: v } = d;
   const hits: number[] = (v?.price_hits ?? []).map((h: any) => h.turn);
 
@@ -25,8 +26,8 @@ export default async function CallDetail({ params, searchParams }: { params: Pro
       <p><Link href="/calls">← All calls</Link></p>
       <header className="row" style={{ justifyContent: "space-between" }}>
         <div>
-          <h1>{e.full_name ? (admin ? e.full_name : e.full_name.split(" ")[0]) : "Caller"} · {e.locality ?? "area not given"}</h1>
-          <p className="sub">{fmtIST(calls[0]?.started_at)} · {calls.length > 1 ? `${calls.length} calls merged into one enquiry` : fmtDur(calls[0]?.duration_s)} · {admin ? e.phone_e164 ?? "no number" : maskPhone(e.phone_e164)}{e.is_test ? " · replayed transcript" : ""}</p>
+          <h1>{e.full_name ? (pii ? e.full_name : e.full_name.split(" ")[0]) : "Caller"} · {e.locality ?? "area not given"}</h1>
+          <p className="sub">{fmtIST(calls[0]?.started_at)} · {calls.length > 1 ? `${calls.length} calls merged into one enquiry` : fmtDur(calls[0]?.duration_s)} · {pii ? e.phone_e164 ?? "no number" : maskPhone(e.phone_e164)}{e.is_test ? " · replayed transcript" : ""}</p>
         </div>
         <div className="row"><StatusPill status={e.status} />{e.priority !== "normal" && <span className="tag">{e.priority.replace(/_/g, " ")}</span>}</div>
       </header>
