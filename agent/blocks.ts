@@ -214,7 +214,8 @@ export function vaaniConfig(now = new Date()) {
         language: "Hindi",
         auto_detect: true,
         ears: { stt: { primary: { provider: "sarvam", model: "saaras:v3", language: "hi" } } },
-        brain: { llm: { primary: { provider: "google", model: process.env.VAANI_LLM_MODEL || "gemini-3.5-flash", parameters: { temperature: 0.2 } } } },
+        // Fallback must be a different provider, and Vaani has disabled Azure (an Azure fallback broke every call).
+        brain: { llm: { primary: { provider: "google", model: process.env.VAANI_LLM_MODEL || "gemini-3.5-flash", parameters: { temperature: 0.2 } }, fallback: { provider: "openai", model: "gpt-4o", parameters: { temperature: 0.2 } } } },
         mouth: { tts: { primary: { provider: "sarvam", model: "bulbul:v3", voice_name: "ritu", voice_id: "ritu", config: { language: "hi" } }, word_pronunciation_pairs: { Aangan: "Aan-gun", PCMC: "P C M C", BHK: "B H K" } } },
       },
     },
@@ -247,6 +248,8 @@ export function vaaniConfig(now = new Date()) {
     },
     experience: {
       settings: {
+        // The agent must never hang up by itself mid-enquiry; calls end when the caller hangs up, on long silence, or at 12 min.
+        end_call: { enabled: false },
         call_settings: { max_call_duration: 12, max_duration_enabled: true, max_duration_action: "hang_up", max_duration_hangup_message: "I've noted everything so far — a designer will call you back. Thank you for calling Aangan Studio." },
         // Generous first-silence window: a slow or quiet first reply must never end the call.
         idle_conversation_settings: { initial_idle_call_warning_timeout: 8, initial_idle_call_hungup_timeout: 40, initial_warning_message: "Hello? I'm here — please go ahead.", idle_call_warning_timeout: 12, idle_call_hangup_timeout: 40, idle_call_hangup_message: "It seems we got disconnected. Please call back any time — thank you." },
