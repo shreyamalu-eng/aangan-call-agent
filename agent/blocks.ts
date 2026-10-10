@@ -3,8 +3,8 @@
  * blocks to Vaani (prompt, greeting, FAQ, guardrails, extraction). Nobody edits the prompt in
  * the Vaani dashboard: the call is a closed bubble, so everything the agent knows must be here.
  * Prices: only pricing.md's indicative bands, always as ranges with the caveat (Nikhil's ask; see PRICE_GUIDE).
- * Language, speech-to-text and voice are set in the Vaani dashboard (Hindi + English fallback, Sarvam) and
- * are deliberately NOT sent from here, so a sync never resets them.
+ * Language, speech-to-text and voice (Hindi + English fallback, Sarvam) are sent from here on every sync,
+ * because Vaani resets them to defaults when a persona update leaves them out.
  */
 import { localityPromptBlock } from "../lib/localities";
 
@@ -208,10 +208,14 @@ export function vaaniConfig(now = new Date()) {
         personality: { tone: "warm, calm, professional", pace: "unhurried" },
         greeting_message: { agent_message: DISCLOSURE.en, agent_speech_delay: 1, interruptible: false, let_user_speak_first: false },
       },
-      // Language, STT (Sarvam) and voice (Sarvam bulbul) live in the Vaani dashboard; only the brain is pinned here.
+      // Hindi with English fallback, Sarvam hearing (saaras:v3, code-mixed Indian speech) and voice (bulbul:v3).
+      // Sent on every sync: Vaani resets hearing and voice to its defaults when a persona update leaves them out.
       senses_capabilities: {
+        language: "Hindi",
+        auto_detect: true,
+        ears: { stt: { primary: { provider: "sarvam", model: "saaras:v3", language: "hi" } } },
         brain: { llm: { primary: { provider: "google", model: process.env.VAANI_LLM_MODEL || "gemini-3.5-flash", parameters: { temperature: 0.2 } } } },
-        mouth: { tts: { word_pronunciation_pairs: { Aangan: "Aan-gun", PCMC: "P C M C", BHK: "B H K" } } },
+        mouth: { tts: { primary: { provider: "sarvam", model: "bulbul:v3", voice_name: "ritu", voice_id: "ritu", config: { language: "hi" } }, word_pronunciation_pairs: { Aangan: "Aan-gun", PCMC: "P C M C", BHK: "B H K" } } },
       },
     },
     training: {
