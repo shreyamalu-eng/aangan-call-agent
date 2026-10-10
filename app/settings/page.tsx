@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { isAdmin } from "@/lib/auth";
 import { q } from "@/lib/db";
 import { CASES } from "@/eval/transcripts";
+import { INBOUND } from "@/eval/inbound";
 
 export const dynamic = "force-dynamic";
 
@@ -29,11 +30,21 @@ export default async function Settings() {
         <form method="post" action="/api/admin/sync-agent"><button type="submit">Sync agent to Vaani now</button></form>
       </section>
       <section className="card">
-        <h2>Replay a September transcript</h2>
-        <p className="sub">Runs a real transcript through the full pipeline (Neon, Telegram, HubSpot, email) as a labelled test row. No Vaani minutes used.</p>
+        <h2>Replay September enquiries</h2>
+        <p className="sub">Runs real September enquiries through the full pipeline (Neon, Telegram, HubSpot, email) as labelled test rows. No Vaani minutes used. "All 39" takes about a minute.</p>
         <form method="post" action="/api/admin/replay" className="filters">
           <label htmlFor="case">Transcript
-            <select id="case" name="caseId" defaultValue="T01">{CASES.filter((c) => c.transcript).map((c) => <option key={c.id} value={c.id}>{c.id} · expected {c.expected}{c.note ? ` (${c.note})` : ""}</option>)}</select>
+            <select id="case" name="caseId" defaultValue="ALL">
+              <optgroup label="Groups">
+                <option value="ALL">All 39 enquiries (calls, WhatsApp, forms)</option>
+                <option value="ALL_PHONE">All 19 phone calls</option>
+                <option value="ALL_WHATSAPP">All 10 WhatsApp threads</option>
+                <option value="ALL_FORMS">All 10 web forms</option>
+              </optgroup>
+              <optgroup label="Phone calls">{CASES.filter((c) => c.transcript).map((c) => <option key={c.id} value={c.id}>{c.id} · expected {c.expected}{c.note ? ` (${c.note})` : ""}</option>)}</optgroup>
+              <optgroup label="WhatsApp">{INBOUND.filter((c) => c.channel === "whatsapp").map((c) => <option key={c.id} value={c.id}>{c.id} · expected {c.expected}{c.note ? ` (${c.note})` : ""}</option>)}</optgroup>
+              <optgroup label="Web form">{INBOUND.filter((c) => c.channel === "web_form").map((c) => <option key={c.id} value={c.id}>{c.id} · expected {c.expected}{c.note ? ` (${c.note})` : ""}</option>)}</optgroup>
+            </select>
           </label>
           <button type="submit">Replay</button>
         </form>

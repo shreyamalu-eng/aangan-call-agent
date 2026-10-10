@@ -126,7 +126,11 @@ export function ruleVerdict(turns: Turn[], opts: { callDate: Date; lowBudgetLakh
   if (/vastu (only|consult)/i.test(caller)) { segment = "out_of_scope"; outOfScope = "Vastu-only consultation"; }
 
   // --- 1. Real project
-  const adviceOnly = /(just (want )?(some )?(ideas|suggestions|advice)|give us some ideas|come and (advise|give)|suggestions on colou?rs|not planning to do the full|i'?ll (do|handle) the execution( myself)?|just exploring|only (want|need) (a )?consultation|second opinion|rearrange (the )?furniture)/i;
+  const adviceOnly = /(just (want )?(some )?(ideas|suggestions|advice)|give us some ideas|come and (advise|give)|suggestions on colou?rs|not planning to do the full|i'?ll (do|handle) the execution( myself)?|only (want|need) (a )?consultation|second opinion|rearrange (the )?furniture)/i;
+  // Early-stage interest is not a "no": it is a follow-up (W10).
+  const exploring = /(just exploring|still exploring|early stage|explore options|not ready yet|still deciding)/i.test(caller);
+  // A cost/price question with no project details needs a follow-up, never a designer (W02, F04, F07).
+  const priceOnly = /(how much|what.{0,20}cost|the cost|price list|per sq ?ft|rate|charge|ballpark)/i.test(caller);
   const realCue = /(redesign|redo|full home|full interiors|complete redesign|end-to-end|fit ?out|kitchen|wardrobe|bedroom|living room|design the interiors|workstations|interior project|proper design|properly design|do the interiors|villa|full package|full execution)/i;
   if (outOfScope) crit.real_project = { result: "fail", evidence: `Out of scope: ${outOfScope}` };
   else if (adviceOnly.test(caller)) crit.real_project = { result: "fail", evidence: firstSentenceMatching(caller, adviceOnly) ?? "Advice only" };
@@ -203,6 +207,14 @@ export function ruleVerdict(turns: Turn[], opts: { callDate: Date; lowBudgetLakh
   else if (fails.length === 0) {
     const sqft = size ? Number(size[1].replace(/,/g, "")) : null;
     if (segment === "commercial" && sqft !== null && sqft < 500) { outcome = "hold_designer_confirm"; flags.push("commercial_under_500"); }
+    else if (exploring) {
+      outcome = "nurture"; flags.push("early_stage");
+      followUpAt = new Date(opts.callDate.getTime() + 35 * 864e5).toISOString().slice(0, 10);
+    }
+    else if (crit.real_project.result === "unclear" && area.status === "unclear") {
+      // Not enough to judge: the front desk asks the one missing question.
+      outcome = "incomplete"; flags.push("needs_follow_up"); if (priceOnly) flags.push("price_only");
+    }
     else if (crit.real_project.result === "unclear" && segment === "unknown") outcome = "non_enquiry";
     else outcome = "qualified";
   } else if (fails.length === 1 && fails[0] === "timeline" && laterStart) {

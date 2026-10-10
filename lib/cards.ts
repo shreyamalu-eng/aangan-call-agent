@@ -7,12 +7,12 @@ const dur = (s: number | null | undefined) => (s ? `${Math.floor(s / 60)}m${Stri
 const tick = (r: string) => (r === "pass" ? "✅" : r === "fail" ? "❌" : r === "not_mentioned" ? "✅" : "❓");
 
 /** The handoff note format from the brief. No phone number: designers get it on the lead page after claiming. */
-export function handoffCard(p: { v: Verdict; firstName: string | null; startedAt: Date | string; durationS: number | null; enquiryId: string; claimedBy?: string | null; passes?: { name: string; reason: string }[]; escalation?: number }) {
+export function handoffCard(p: { channel?: string; v: Verdict; firstName: string | null; startedAt: Date | string; durationS: number | null; enquiryId: string; claimedBy?: string | null; passes?: { name: string; reason: string }[]; escalation?: number }) {
   const { v } = p;
   const badge = v.priority === "previously_dropped" ? "⚠️ PRIORITY · PREVIOUSLY DROPPED" : v.flags.includes("callback_after_drop") ? "🔁 QUALIFIED LEAD (merged)" : "🏠 QUALIFIED LEAD";
   const c = v.criteria;
   const lines = [
-    `<b>${badge}</b> · Phone · ${esc(IST(p.startedAt))} · ${dur(p.durationS)}`,
+    `<b>${badge}</b> · ${p.channel === "whatsapp" ? "WhatsApp" : p.channel === "web_form" ? "Web form" : "Phone"} · ${esc(IST(p.startedAt))}${p.channel && p.channel !== "phone" ? "" : ` · ${dur(p.durationS)}`}`,
     `<b>${esc(p.firstName ?? "Caller")}</b> · ${esc(v.fields.locality ?? "area?")} · ${esc([v.fields.property, v.fields.size].filter(Boolean).join(", ") || "size?")}`,
     `<b>Scope:</b> ${esc(v.fields.scope ?? "—")}`,
     `<b>Timeline:</b> ${esc(v.fields.timeline ?? "not given")}`,

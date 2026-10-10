@@ -90,6 +90,8 @@ export function matchArea(text: string | null | undefined): AreaMatch {
       let score = 0;
       if (/(we have|i have|my |our |i'?m in|i am in|property|site|planning to open|located|we'?re in|from )/i.test(sent)) score += 2;
       if (/\b(she|he|her|his|friend|their)\b/i.test(sent)) score -= 2;
+      if (/location\s*:/i.test(sent)) score += 4; // web-form "Location:" field is the site
+      if (/(find us|found us|referred|worked with|recommend|asked me to)/i.test(sent)) score -= 2;
       if (!best || score > best.score) best = { l, a, score, order };
       break;
     }

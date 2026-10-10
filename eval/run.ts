@@ -4,6 +4,7 @@
  *   npm run eval            (rules engine, offline)
  */
 import { CASES } from "./transcripts";
+import { INBOUND } from "./inbound";
 import { parseTranscript } from "../lib/transcript";
 import { ruleVerdict } from "../lib/verdict";
 import { mergeTarget, previouslyDropped } from "../lib/history";
@@ -52,6 +53,15 @@ for (const c of CASES) {
   if (hits) for (const h of v.priceHits) console.log(`  price figure in ${c.id} (front desk, turn ${h.turn}): …${h.excerpt}…`);
 }
 
+// WhatsApp threads and web forms go through the same verdict (channel-agnostic pipeline).
+const inRows: Row[] = INBOUND.map((c) => {
+  const v = ruleVerdict(parseTranscript(c.transcript), { callDate: new Date(c.date) });
+  const fails = v.declineCriteria.length ? ` · failed: ${v.declineCriteria.join(", ")}` : "";
+  priceTotal += v.priceHits.length;
+  return { id: c.id, expected: c.expected + (c.note ? ` (${c.note})` : ""), got: v.outcome, ok: v.outcome === c.expected,
+    detail: `${c.channel} · ${v.fields.locality ?? "?"}${fails}${v.flags.length ? ` · flags: ${v.flags.join(", ")}` : ""}${v.followUpAt ? ` · follow-up ${v.followUpAt}` : ""}`, priceHits: v.priceHits.length };
+});
+
 const scored = rows.filter((r) => !r.got.startsWith("answered"));
 const correct = scored.filter((r) => r.ok).length;
 const md = [
@@ -63,7 +73,15 @@ const md = [
   `| ID | Expected | Got | ✓ | Detail | ₹ hits |`,
   `|---|---|---|---|---|---|`,
   ...rows.map((r) => `| ${r.id} | ${r.expected} | ${r.got} | ${r.ok ? "✅" : "❌"} | ${r.detail.replace(/\|/g, "/")} | ${r.priceHits} |`),
+  ``,
+  `## WhatsApp and web form (same verdict code)`,
+  ``,
+  `Accuracy: **${inRows.filter((r) => r.ok).length}/${inRows.length}**`,
+  ``,
+  `| ID | Expected | Got | ✓ | Detail | ₹ hits |`,
+  `|---|---|---|---|---|---|`,
+  ...inRows.map((r) => `| ${r.id} | ${r.expected} | ${r.got} | ${r.ok ? "✅" : "❌"} | ${r.detail.replace(/\|/g, "/")} | ${r.priceHits} |`),
 ].join("\n");
 writeFileSync(new URL("./report.md", import.meta.url), md + "\n");
 console.log(md);
-if (correct !== scored.length) process.exitCode = 1;
+if (correct !== scored.length || inRows.some((r) => !r.ok)) process.exitCode = 1;

@@ -39,7 +39,10 @@ export function durationSeconds(v: number | null | undefined) {
   return v > 4000 ? Math.round(v / 1000) : Math.round(v);
 }
 
-export async function processCall(c: VaaniCall, opts: { isTest?: boolean } = {}) {
+export type Channel = "phone" | "whatsapp" | "web_form";
+
+export async function processCall(c: VaaniCall, opts: { isTest?: boolean; channel?: Channel } = {}) {
+  const channel: Channel = opts.channel ?? "phone";
   const existing = await one<{ id: string; state: string }>("select id, state from calls where vaani_call_id = $1", [c.call_id]);
   if (existing?.state === "processed") return { status: "duplicate", callId: existing.id };
 
@@ -130,7 +133,7 @@ export async function processCall(c: VaaniCall, opts: { isTest?: boolean } = {})
       enquiryId = (await one<{ id: string }>(
         `insert into enquiries (source, segment, locality, area_status, size_text, scope_text, timeline_text, decision_text, likes, dislikes, preferred_slots,
           status, decline_criteria, priority, follow_up_at, is_test, person_id, channel)
-         values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,'phone') returning id`, [...fields, personId]))!.id;
+         values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18) returning id`, [...fields, personId, channel]))!.id;
     }
     await q("update calls set enquiry_id = $1 where id = $2", [enquiryId, call.id]);
 
@@ -155,7 +158,7 @@ export async function processCall(c: VaaniCall, opts: { isTest?: boolean } = {})
     const safe = async (label: string, fn: () => Promise<unknown>) => { try { await fn(); } catch (e) { errors.push(`${label}: ${String(e).slice(0, 200)}`); } };
 
     if (v.outcome === "qualified" || v.outcome === "hold_designer_confirm") {
-      await safe("handoff", () => handoff({ enquiryId, v, firstName, phone, email, startedAt, durationS, summary: c.summary ?? null, hold: v.outcome === "hold_designer_confirm" }));
+      await safe("handoff", () => handoff({ channel, enquiryId, v, firstName, phone, email, startedAt, durationS, summary: c.summary ?? null, hold: v.outcome === "hold_designer_confirm" }));
     }
     if (v.outcome === "complaint") {
       await q("insert into escalations (enquiry_id, reason) values ($1,'complaint')", [enquiryId]);
@@ -175,7 +178,7 @@ export async function processCall(c: VaaniCall, opts: { isTest?: boolean } = {})
   }
 }
 
-async function handoff(p: { enquiryId: string; v: Verdict; firstName: string | null; phone: string | null; email: string | null; startedAt: Date; durationS: number | null; summary: string | null; hold: boolean }) {
+async function handoff(p: { channel: Channel; enquiryId: string; v: Verdict; firstName: string | null; phone: string | null; email: string | null; startedAt: Date; durationS: number | null; summary: string | null; hold: boolean }) {
   const row = (await one<{ id: string; sent_at: string | null; tg_message_id: number | null; hubspot_deal_id: string | null }>(
     `insert into handoffs (enquiry_id) values ($1) on conflict (enquiry_id) do update set enquiry_id = excluded.enquiry_id returning id, sent_at, tg_message_id, hubspot_deal_id`, [p.enquiryId]))!;
   const errors: string[] = [];
@@ -184,7 +187,7 @@ async function handoff(p: { enquiryId: string; v: Verdict; firstName: string | n
   const chat = process.env.TELEGRAM_DESIGNERS_CHAT_ID;
   if (chat && process.env.TELEGRAM_BOT_TOKEN) {
     try {
-      const text = (p.hold ? "🟣 <b>DESIGNER TO CONFIRM</b> (commercial under 500 sq ft — pending Nikhil)\n" : "") + handoffCard({ v: p.v, firstName: p.firstName, startedAt: p.startedAt, durationS: p.durationS, enquiryId: p.enquiryId });
+      const text = (p.hold ? "🟣 <b>DESIGNER TO CONFIRM</b> (commercial under 500 sq ft — pending Nikhil)\n" : "") + handoffCard({ channel: p.channel, v: p.v, firstName: p.firstName, startedAt: p.startedAt, durationS: p.durationS, enquiryId: p.enquiryId });
       if (row.tg_message_id) await tg.edit(chat, row.tg_message_id, text, claimButtons(row.id));
       else {
         const m = await tg.send(chat, text, claimButtons(row.id));
