@@ -109,7 +109,7 @@ export default async function Overview({ searchParams }: { searchParams: Promise
                       {a.sent_at && !a.claimed_at && a.escalation_level >= 1 && <span className="tag bad"><span aria-hidden="true">⏱</span>unclaimed {a.escalation_level >= 3 ? "> 60 min" : a.escalation_level === 2 ? "> 30 min" : "> 15 min"}</span>}
                       {a.priority === "previously_dropped" && <span className="tag warn">previously dropped</span>}
                       {a.is_test && <span className="tag">replay</span>}
-                      {(a.flags ?? []).filter((x: string) => ["price_figure_spoken", "frustrated", "wants_human"].includes(x)).map((x: string) => <span key={x} className="tag bad">{x === "price_figure_spoken" ? "price figure spoken" : x.replace(/_/g, " ")}</span>)}
+                      {(a.flags ?? []).filter((x: string) => ["price_figure_spoken", "frustrated", "wants_human"].includes(x)).map((x: string) => <span key={x} className="tag bad">{x === "price_figure_spoken" ? "off-guide price" : x.replace(/_/g, " ")}</span>)}
                     </div>
                   </li>
                 ))}
@@ -152,7 +152,7 @@ export default async function Overview({ searchParams }: { searchParams: Promise
             <dt>Per call</dt><dd>{k.calls ? inr(data.cost.total / k.calls) : "—"}</dd>
             <dt>Per qualified lead</dt><dd>{k.qualified ? inr(data.cost.total / k.qualified) : "—"}</dd>
             <dt>Per signed project</dt><dd>{data.signed.n ? inr(data.cost.total / data.signed.n) : "—"}</dd>
-            <dt>Price figures spoken</dt>
+            <dt>Off-guide prices</dt>
             <dd>{k.price_slips > 0
               ? <span className="pill bad"><span aria-hidden="true">✕</span>{k.price_slips} · must stay 0</span>
               : <span className="pill good"><span aria-hidden="true">✓</span>0 · must stay 0</span>}</dd>

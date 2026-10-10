@@ -6,7 +6,7 @@ import { findPriceFigures } from "../lib/priceGuard";
 import { mergeTarget, previouslyDropped } from "../lib/history";
 import { parseTranscript } from "../lib/transcript";
 import { ruleVerdict } from "../lib/verdict";
-import { PRICE_LINE } from "../agent/blocks";
+import { PRICE_LINE, PRICE_GUIDE } from "../agent/blocks";
 
 test("area: listed, misspelt, not served, to confirm", () => {
   assert.equal(matchArea("We have a flat in Hinjawadi phase 2").locality, "Hinjewadi");
@@ -29,8 +29,12 @@ test("phone and email normalisers", () => {
   assert.equal(redact("call me on 98765 43210 or a@b.com"), "call me on [PHONE] or [EMAIL]");
 });
 
-test("price guard: the approved deflection passes, figures fail", () => {
-  assert.equal(findPriceFigures([{ role: "agent", text: PRICE_LINE.en }]).length, 0);
+test("price guard: approved indicative ranges pass, any other figure fails", () => {
+  for (const line of Object.values(PRICE_LINE)) assert.equal(findPriceFigures([{ role: "agent", text: line }]).length, 0, line);
+  for (const band of Object.values(PRICE_GUIDE)) assert.equal(findPriceFigures([{ role: "agent", text: `As a guide, ${band}.` }]).length, 0, band);
+  assert.ok(findPriceFigures([{ role: "agent", text: "Usually ₹1,500 to ₹2,000 per sq ft" }]).length > 0); // not an approved band
+  assert.ok(findPriceFigures([{ role: "agent", text: "So your 1,400 sq ft home would be about ₹28 lakh" }]).length > 0); // a total
+  assert.ok(findPriceFigures([{ role: "agent", text: "We can give you a 10% discount" }]).length > 0);
   assert.equal(findPriceFigures([{ role: "agent", text: "It's about 1,400 sq ft, lovely." }]).length, 0);
   assert.ok(findPriceFigures([{ role: "agent", text: "For a 2BHK it's typically 8 lakh" }]).length > 0);
   assert.ok(findPriceFigures([{ role: "agent", text: "Our rates start at ₹1,800 per sq ft" }]).length > 0);

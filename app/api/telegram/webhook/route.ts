@@ -56,6 +56,12 @@ export async function POST(req: Request) {
         const owner = designer?.hubspot_owner_id ?? (await hs.ownerIdForEmail(designer?.email));
         try { await hs.moveDeal(c.r.hubspot_deal_id, "claimed", owner ? { hubspot_owner_id: owner } : {}); } catch (e) { console.error(e); }
       }
+      // Already booked by the agent on the call: no slot picker, just tell the designer when.
+      const pre = await one<{ booked_start: string }>("select booked_start from consultations where enquiry_id = $1 and status = 'booked' order by created_at desc limit 1", [c?.r.enquiry_id]);
+      if (pre) {
+        await tg.send(chatId, `📅 <b>${tg.esc(name)}</b>: the caller already booked a consultation on the call for <b>${tg.esc(slotLabel(pre.booked_start))}</b>. Please call them before then to introduce yourself.`);
+        return NextResponse.json({ ok: true });
+      }
       // Slot picker: at most 3 open times that fit the caller's own windows.
       try {
         const e = await one<{ preferred_slots: string | null }>("select preferred_slots from enquiries where id = $1", [c?.r.enquiry_id]);

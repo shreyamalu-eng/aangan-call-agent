@@ -35,3 +35,39 @@ export async function bookConsultation(p: { enquiryId: string; startIso: string;
   await sendEmail({ to: records ?? "", subject: `Consultation booked: ${when} · ${r.locality ?? ""}`, html: `<p>${tg.esc(p.designer)} booked ${tg.esc(when)}${p.calendar ? "" : " (agreed by phone; not in Cal.com)"}.</p><p><a href="${appUrl()}/calls/${r.enquiry_id}">Lead</a></p>` });
   return { when, calendar: p.calendar, emailedCaller: Boolean(r.email) };
 }
+
+/**
+ * Booked by the voice agent DURING a call (Vaani custom tool). The enquiry is created only after the
+ * call, so the consultation is saved unlinked and attached by linkCallBookings() when the call is processed.
+ */
+export async function bookFromCall(p: { startIso: string; name: string; phone: string | null; email: string | null; callRef: string | null; notes: string }) {
+  if (p.phone) {
+    const dup = await one("select 1 from consultations where caller_phone = $1 and status = 'booked' and booked_start > now()", [p.phone]);
+    if (dup) throw new Error("already booked");
+  }
+  const records = process.env.TEAM_EMAIL || process.env.FOUNDER_EMAIL;
+  const attendeeEmail = p.email || records;
+  if (!attendeeEmail) throw new Error("No caller email and no TEAM_EMAIL for the booking");
+  const booking = await cal.book({ start: p.startIso, name: p.name || "Aangan enquiry", email: attendeeEmail, phone: p.phone, notes: `Booked by the AI agent on the call. ${p.notes}`.slice(0, 900) });
+  await q(`insert into consultations (enquiry_id, status, booked_start, calcom_booking_uid, booked_by, caller_phone, call_ref, booked_via)
+           values (null,'booked',$1,$2,'AI agent (on the call)',$3,$4,'agent')`, [p.startIso, booking?.uid ?? null, p.phone, p.callRef]);
+  const when = slotLabel(p.startIso);
+  await sendEmail({ to: records ?? "", subject: `Consultation booked on a call: ${when}`, html: `<p>The AI agent booked a consultation for ${tg.esc(when)} (IST) during a call. The lead appears on the dashboard when the call is processed.</p>` });
+  return { when };
+}
+
+/**
+ * After a call is processed: attach consultations the agent booked during it (same call reference, or the
+ * same caller number in the last 2 hours), record the outcome and move the HubSpot deal.
+ */
+export async function linkCallBookings(p: { enquiryId: string; callRef: string | null; phone: string | null; hubspotDealId?: string | null }) {
+  const rows = await q<{ id: string; booked_start: string }>(
+    `update consultations set enquiry_id = $1
+      where enquiry_id is null and booked_via = 'agent' and created_at > now() - interval '2 hours'
+        and (($2::text is not null and call_ref = $2) or ($3::text is not null and caller_phone = $3))
+      returning id, booked_start`, [p.enquiryId, p.callRef, p.phone]);
+  if (!rows.length) return null;
+  await q(`insert into outcomes (enquiry_id, stage, set_by) values ($1,'consultation_booked','AI agent')`, [p.enquiryId]);
+  if (p.hubspotDealId) { try { await hs.moveDeal(p.hubspotDealId, "consultation_booked"); } catch (e) { console.error(e); } }
+  return rows[0].booked_start;
+}

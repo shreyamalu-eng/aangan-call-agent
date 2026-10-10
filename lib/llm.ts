@@ -21,7 +21,7 @@ export async function llmCriteria(redactedTranscript: string, callDateIso: strin
   const prompt = `${RUBRIC}\n\nCall date: ${callDateIso}\n\nTranscript:\n${redactedTranscript.slice(0, 12000)}`;
   try {
     if (process.env.GEMINI_API_KEY) {
-      const model = process.env.VERDICT_MODEL || "gemini-2.5-flash";
+      const model = process.env.VERDICT_MODEL || "gemini-flash-latest";
       const r = await fetchJson<any>(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${process.env.GEMINI_API_KEY}`, {
         method: "POST", headers: { "Content-Type": "application/json" }, timeoutMs: 20000,
         body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: prompt }] }], generationConfig: { temperature: 0, responseMimeType: "application/json" } }),

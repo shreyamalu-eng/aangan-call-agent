@@ -1,7 +1,7 @@
 /** Central list of env vars, so /api/health can report what is configured without exposing values. */
 export const ENV_KEYS = {
   core: ["DATABASE_URL", "CRON_SECRET", "APP_URL"],
-  vaani: ["VAANI_API_KEY", "VAANI_AGENT_ID", "VAANI_WEBHOOK_SECRET"],
+  vaani: ["VAANI_API_KEY", "VAANI_AGENT_ID", "VAANI_WEBHOOK_SECRET", "AGENT_TOOL_SECRET"],
   telegram: ["TELEGRAM_BOT_TOKEN", "TELEGRAM_DESIGNERS_CHAT_ID", "TELEGRAM_WEBHOOK_SECRET", "TELEGRAM_ALERT_CHAT_ID"],
   hubspot: ["HUBSPOT_TOKEN", "HUBSPOT_PIPELINE_ID"],
   calcom: ["CALCOM_API_KEY", "CALCOM_EVENT_TYPE_ID"],
@@ -13,6 +13,7 @@ export const ENV_KEYS = {
 /** Settings the app works without. Shown as "optional" (not failing) on /health, with what happens instead. */
 export const OPTIONAL: Record<string, string> = {
   VAANI_WEBHOOK_SECRET: "Only if Vaani gives you a signing secret. Webhooks still work without it.",
+  AGENT_TOOL_SECRET: "Optional lock for the booking tools the agent calls mid-call. Without it they are open, like the rest of the dashboard.",
   TELEGRAM_ALERT_CHAT_ID: "Alerts go to the designers' group instead.",
   HUBSPOT_PIPELINE_ID: "Uses HubSpot's built-in Sales Pipeline.",
   CALCOM_EVENT_TYPE_ID: "Uses CALCOM_EVENT_SLUG / your first event type.",

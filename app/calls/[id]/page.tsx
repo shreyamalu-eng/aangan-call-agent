@@ -105,7 +105,7 @@ export default async function CallDetail({ params, searchParams }: { params: Pro
                   const hit = last && hits.includes(j);
                   return (
                     <li key={j} className={`${t.role} ${hit ? "hit" : ""}`}>
-                      <span className="who-l">{t.role === "agent" ? "Agent" : "Caller"}{hit && <> · <b>Price figure detected</b></>}</span>{t.text}
+                      <span className="who-l">{t.role === "agent" ? "Agent" : "Caller"}{hit && <> · <b>Off-guide price detected</b></>}</span>{t.text}
                     </li>
                   );
                 })}

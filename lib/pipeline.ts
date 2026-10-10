@@ -15,6 +15,7 @@ import * as hs from "./hubspot";
 import { sendEmail } from "./email";
 import { handoffCard, claimButtons } from "./cards";
 import { appUrl } from "./env";
+import { linkCallBookings } from "./booking";
 
 export type VaaniCall = {
   call_id: string; room_name?: string; call_duration?: number; end_reason?: string; summary?: string;
@@ -168,6 +169,12 @@ export async function processCall(c: VaaniCall, opts: { isTest?: boolean; channe
     if (v.priority === "previously_dropped" && v.outcome === "qualified") {
       await safe("dropped-alert", () => tg.alert(`⚠️ <b>Previously dropped lead called back</b> — senior designer please take this one.\n<a href="${appUrl()}/calls/${enquiryId}">Open in dashboard</a>`));
     }
+
+    // A consultation the agent booked during this call gets attached to the lead.
+    await safe("link-booking", async () => {
+      const h = await one<{ hubspot_deal_id: string | null }>("select hubspot_deal_id from handoffs where enquiry_id = $1", [enquiryId]);
+      await linkCallBookings({ enquiryId, callRef: c.call_id, phone, hubspotDealId: h?.hubspot_deal_id ?? null });
+    });
 
     await q("update calls set state='processed', error=$2 where id=$1", [call.id, errors.length ? errors.join(" | ") : null]);
     return { status: "processed", callId: call.id, enquiryId, outcome: v.outcome, errors };
