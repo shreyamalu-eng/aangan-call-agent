@@ -38,18 +38,26 @@ function BrowserCall() {
     const t = setInterval(() => setSecs((s) => s + 1), 1000);
     return () => clearInterval(t);
   }, [phase]);
-  useEffect(() => () => { room.current?.disconnect(); }, []);
+  useEffect(() => () => { room.current?.disconnect(); delete document.body.dataset.callLive; }, []);
 
-  const ended = () => {
+  // What happened on the call (who joined/left, why it ended), saved for troubleshooting. No audio or words.
+  const diag = useRef<{ room: string | null; t0: number; events: string[] }>({ room: null, t0: 0, events: [] });
+  const log = (e: string) => { const d = diag.current; d.events.push(`${((Date.now() - d.t0) / 1000).toFixed(1)}s ${e}`); console.info("[call]", e); };
+
+  const ended = (reason: string) => {
+    log(`ended: ${reason}`);
     room.current = null;
+    delete document.body.dataset.callLive;
     if (audio.current) audio.current.innerHTML = "";
+    fetch("/api/call/diag", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(diag.current) }).catch(() => {});
     setPhase("saving");
-    setMsg("Call ended. Saving it — it appears in the list below in a minute or two.");
+    setMsg(`Call ended (${reason}). Saving it — it appears in the list below in a minute or two.`);
     afterCall((found) => { setPhase(found ? "saved" : "idle"); setMsg(found ? "Saved. It's at the top of the list below." : "Still processing at Vaani. It will appear within 5 minutes."); });
   };
 
   const start = async () => {
     setPhase("connecting"); setMsg(""); setSecs(0); setMuted(false);
+    diag.current = { room: null, t0: Date.now(), events: [] };
     try {
       const mic = await navigator.mediaDevices.getUserMedia({ audio: true }).catch(() => null);
       if (!mic) throw new Error("Allow microphone access in your browser to talk to the agent.");
@@ -57,17 +65,29 @@ function BrowserCall() {
       const r = await fetch("/api/call/start", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ medium: "webrtc" }) });
       const d = await r.json();
       if (!r.ok) throw new Error(d.error ?? "Couldn't start the call.");
-      const { Room, RoomEvent, Track } = await import("livekit-client");
+      diag.current.room = d.room ?? null;
+      const { Room, RoomEvent, Track, DisconnectReason } = await import("livekit-client");
       const rm = new Room();
       room.current = rm;
-      rm.on(RoomEvent.TrackSubscribed, (track) => { if (track.kind === Track.Kind.Audio && audio.current) audio.current.appendChild(track.attach()); });
-      rm.on(RoomEvent.ParticipantDisconnected, () => { if (rm.remoteParticipants.size === 0) rm.disconnect(); });
-      rm.on(RoomEvent.Disconnected, ended);
+      let emptySince: ReturnType<typeof setTimeout> | null = null;
+      rm.on(RoomEvent.TrackSubscribed, (track, _pub, p) => { log(`audio from ${p.identity}`); if (track.kind === Track.Kind.Audio && audio.current) audio.current.appendChild(track.attach()); });
+      rm.on(RoomEvent.ParticipantConnected, (p) => { log(`joined: ${p.identity}`); if (emptySince) { clearTimeout(emptySince); emptySince = null; } });
+      // The agent can briefly leave and rejoin (e.g. after the greeting). Only hang up if nobody is back within 10s.
+      rm.on(RoomEvent.ParticipantDisconnected, (p) => {
+        log(`left: ${p.identity} (remaining ${rm.remoteParticipants.size})`);
+        if (rm.remoteParticipants.size === 0 && !emptySince) emptySince = setTimeout(() => { if (rm.remoteParticipants.size === 0) { log("agent gone 10s"); rm.disconnect(); } }, 10_000);
+      });
+      rm.on(RoomEvent.Reconnecting, () => log("reconnecting"));
+      rm.on(RoomEvent.Reconnected, () => log("reconnected"));
+      rm.on(RoomEvent.Disconnected, (reason) => ended(reason == null ? "unknown" : String(DisconnectReason[reason] ?? reason).toLowerCase().replace(/_/g, " ")));
       await rm.connect(d.url, d.token);
+      log(`connected; others in room: ${[...rm.remoteParticipants.values()].map((p) => p.identity).join(", ") || "none"}`);
       await rm.localParticipant.setMicrophoneEnabled(true);
       await rm.startAudio();
+      document.body.dataset.callLive = "1"; // pauses the 20-second page refresh
       setPhase("live");
     } catch (e) {
+      log(`error: ${e instanceof Error ? e.message : String(e)}`);
       room.current?.disconnect(); room.current = null;
       setPhase("error"); setMsg(e instanceof Error ? e.message : String(e));
     }
@@ -84,7 +104,7 @@ function BrowserCall() {
       {phase === "live" ? (
         <div className="btn-row">
           <button type="button" className="btn outline" onClick={toggleMute} aria-pressed={muted}>{muted ? "Unmute" : "Mute"}</button>
-          <button type="button" className="btn danger" onClick={() => room.current?.disconnect()}><Icon name="phoneOff" />End call</button>
+          <button type="button" className="btn danger" onClick={() => { log("you pressed End call"); room.current?.disconnect(); }}><Icon name="phoneOff" />End call</button>
         </div>
       ) : (
         <button type="button" className="btn block" onClick={start} disabled={phase === "connecting" || phase === "saving"}>

@@ -22,7 +22,7 @@ export async function POST(req: Request) {
   try { body = await req.json(); } catch { return NextResponse.json({ error: "Send JSON." }, { status: 400 }); }
   try {
     if (body.medium === "webrtc") {
-      const r = await triggerCall({ medium: "webrtc", primary_language: "en", secondary_language: "hi" });
+      const r = await triggerCall({ medium: "webrtc", primary_language: "hi", secondary_language: "en" }) // matches the agent: Hindi with English fallback;
       const url = r?.connection_url ?? r?.url ?? r?.livekit_url;
       if (!r?.token || !url) return NextResponse.json({ error: "Vaani didn't return a call link." }, { status: 502 });
       return NextResponse.json({ token: r.token, url, room: r.room_name ?? null });

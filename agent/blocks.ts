@@ -248,7 +248,8 @@ export function vaaniConfig(now = new Date()) {
     experience: {
       settings: {
         call_settings: { max_call_duration: 12, max_duration_enabled: true, max_duration_action: "hang_up", max_duration_hangup_message: "I've noted everything so far — a designer will call you back. Thank you for calling Aangan Studio." },
-        idle_conversation_settings: { idle_call_hangup_timeout: 20, idle_call_hangup_message: "It seems we got disconnected. Please call back any time — thank you." },
+        // Generous first-silence window: a slow or quiet first reply must never end the call.
+        idle_conversation_settings: { initial_idle_call_warning_timeout: 8, initial_idle_call_hungup_timeout: 40, initial_warning_message: "Hello? I'm here — please go ahead.", idle_call_warning_timeout: 12, idle_call_hangup_timeout: 40, idle_call_hangup_message: "It seems we got disconnected. Please call back any time — thank you." },
       },
     },
   };
