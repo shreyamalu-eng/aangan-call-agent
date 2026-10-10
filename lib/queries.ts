@@ -12,7 +12,8 @@ const where = (f: Filters, params: unknown[]) => {
   return w.join(" and ");
 };
 
-export async function overview(f: Filters) {
+/** Headline counts. Also run for the previous period to show change pills. */
+export async function kpiCounts(f: Filters) {
   const params: unknown[] = [];
   const w = where(f, params);
   const [k] = await q<any>(`
@@ -29,6 +30,8 @@ export async function overview(f: Filters) {
       percentile_cont(0.5) within group (order by extract(epoch from (h.sent_at - c.ended_at))) filter (where h.sent_at is not null) as median_to_telegram_s,
       percentile_cont(0.5) within group (order by extract(epoch from (h.claimed_at - h.sent_at))) filter (where h.claimed_at is not null) as median_to_claim_s,
       count(distinct h.id) filter (where h.claimed_at is not null)::int as claimed,
+      count(distinct h.id) filter (where h.sent_at is not null)::int as sent,
+      count(distinct h.id) filter (where h.claimed_at is not null and h.claimed_at - h.sent_at <= interval '60 minutes')::int as claimed_60,
       count(distinct co.enquiry_id)::int as booked,
       count(*) filter (where v.price_figure_spoken)::int as price_slips
     from calls c
@@ -37,6 +40,13 @@ export async function overview(f: Filters) {
     left join lateral (select price_figure_spoken from verdicts where call_id = c.id order by created_at desc limit 1) v on true
     left join (select distinct enquiry_id from consultations where status = 'booked') co on co.enquiry_id = e.id
     where ${w}`, params);
+  return k;
+}
+
+export async function overview(f: Filters) {
+  const params: unknown[] = [];
+  const w = where(f, params);
+  const k = await kpiCounts(f);
   const byHour = await q<{ hour: number; n: number; after: number }>(`
     select extract(hour from c.started_at at time zone 'Asia/Kolkata')::int as hour, count(*)::int as n,
            count(*) filter (where not c.in_hours)::int as after
@@ -92,4 +102,35 @@ export async function enquiryDetail(id: string) {
   const consults = await q<any>("select * from consultations where enquiry_id = $1 order by created_at", [id]);
   const cost = await one<any>("select coalesce(sum(amount_inr),0)::float as inr from cost_events ce join calls c on c.id = ce.call_id where c.enquiry_id = $1", [id]);
   return { e, calls, verdict, outcomes, consults, cost };
+}
+
+/** Qualified enquiries per IST day, for the pipeline chart. */
+export async function qualifiedByDay(f: Filters) {
+  const params: unknown[] = [];
+  const w = where(f, params);
+  return q<{ day: string; n: number }>(`
+    select to_char((c.started_at at time zone 'Asia/Kolkata')::date, 'YYYY-MM-DD') as day, count(distinct e.id)::int as n
+    from calls c join enquiries e on e.id = c.enquiry_id
+    where ${w} and e.status = 'qualified' group by 1 order by 1`, params);
+}
+
+export async function firstCallDay() {
+  const r = await one<{ d: string | null }>(`select to_char(min(started_at at time zone 'Asia/Kolkata')::date, 'YYYY-MM-DD') as d from calls`);
+  return r?.d ?? null;
+}
+
+/** Qualified leads with their latest stage, for the Pipeline table. */
+export async function qualifiedLeads(f: Filters) {
+  const params: unknown[] = [];
+  const w = where({ ...f, outcome: "qualified" }, params);
+  return q<any>(`
+    select e.id, e.locality, e.segment, e.size_text, e.is_test, c.started_at, h.claimed_by_name, h.sent_at, h.hubspot_deal_id,
+           p.full_name, p.phone_e164,
+           (select stage from outcomes o where o.enquiry_id = e.id order by set_at desc limit 1) as stage,
+           (select booked_start from consultations co where co.enquiry_id = e.id and co.status = 'booked' order by created_at desc limit 1) as consult_at
+    from calls c join enquiries e on e.id = c.enquiry_id
+    left join handoffs h on h.enquiry_id = e.id
+    left join people p on p.id = e.person_id
+    where ${w} and c.id = (select id from calls x where x.enquiry_id = e.id order by started_at desc limit 1)
+    order by c.started_at desc nulls last limit 200`, params);
 }

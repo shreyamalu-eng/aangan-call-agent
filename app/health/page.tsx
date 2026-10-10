@@ -1,8 +1,10 @@
 import { runHealth } from "@/lib/health";
 import { q } from "@/lib/db";
-import { fmtIST } from "@/components/ui";
+import { CardHead, Empty, fmtIST } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
+
+const Status = ({ ok }: { ok: boolean }) => <span className={`pill ${ok ? "good" : "bad"}`}><span aria-hidden="true">{ok ? "✓" : "✕"}</span>{ok ? "OK" : "Failing"}</span>;
 
 export default async function Health() {
   const h = await runHealth({ deep: false });
@@ -11,22 +13,37 @@ export default async function Health() {
   const deep = last[0];
   return (
     <>
-      <header><h1>Health</h1><p className="sub">Live database check now; provider checks from the last 5-minute job. Failures alert on Telegram and by email.</p></header>
+      <header className="page-head">
+        <div><h1>Health</h1><p className="sub">Live database check now; provider checks from the last 5-minute job. Failures alert on Telegram and by email.</p></div>
+      </header>
+
       <section className="card">
-        <h2>{h.ok ? "✓ Database reachable" : "✕ Database unreachable"}</h2>
-        <p className="sub">Neon answered in {h.checks.neon.ms} ms{h.checks.neon.detail ? ` · ${h.checks.neon.detail}` : ""}. Last call logged: {fmtIST(h.lastCall)}.</p>
+        <CardHead title="Services" sub={deep ? `Providers checked ${fmtIST(deep.checked_at)}` : "Providers not checked yet"} />
+        <div className="tablewrap">
+          <table className="stackable">
+            <caption className="visually-hidden">Service status</caption>
+            <thead><tr><th>Service</th><th>Status</th><th className="num">ms</th><th>Detail</th></tr></thead>
+            <tbody>
+              <tr><td className="lead"><b>Neon (live)</b></td><td data-label="Status"><Status ok={h.checks.neon.ok} /></td><td data-label="ms" className="num">{h.checks.neon.ms}</td><td data-label="Detail">{h.checks.neon.detail ?? `Last call logged ${fmtIST(h.lastCall)}`}</td></tr>
+              {deep && Object.entries(deep.results as Record<string, any>).filter(([k]) => k !== "neon").map(([k, c]) => (
+                <tr key={k}><td className="lead"><b style={{ textTransform: "capitalize" }}>{k}</b></td><td data-label="Status"><Status ok={c.ok} /></td><td data-label="ms" className="num">{c.ms}</td><td data-label="Detail">{c.detail ?? "—"}</td></tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {!deep && <Empty>The GitHub Actions job hasn't run yet. Provider checks appear here after its first run.</Empty>}
       </section>
+
       <section className="card">
-        <h2>Providers {deep ? `(checked ${fmtIST(deep.checked_at)})` : "(not checked yet)"}</h2>
-        {deep ? (
-          <table><thead><tr><th>Service</th><th>Status</th><th className="num">ms</th><th>Detail</th></tr></thead>
-            <tbody>{Object.entries(deep.results as Record<string, any>).map(([k, c]) => <tr key={k}><td>{k}</td><td>{c.ok ? "✓ OK" : "✕ Failing"}</td><td className="num">{c.ms}</td><td>{c.detail ?? ""}</td></tr>)}</tbody></table>
-        ) : <p className="sub">The GitHub Actions job hasn't run yet.</p>}
-      </section>
-      <section className="card">
-        <h2>Configuration</h2>
-        <table><thead><tr><th>Integration</th><th>Variables set</th></tr></thead>
-          <tbody>{Object.entries(h.env).map(([g, ks]) => <tr key={g}><td>{g}</td><td>{Object.entries(ks).map(([k, v]) => <span key={k} className="tag" style={{ marginRight: 6, display: "inline-block", marginBottom: 4 }}>{v ? "✓" : "✕"} {k}</span>)}</td></tr>)}</tbody></table>
+        <CardHead title="Configuration" sub="Which settings are present. Values are never shown." />
+        <ul className="rows">
+          {Object.entries(h.env).map(([g, ks]) => (
+            <li key={g}>
+              <b style={{ textTransform: "capitalize" }}>{g}</b>
+              <div className="tags">{Object.entries(ks).map(([k, v]) => <span key={k} className={`tag ${v ? "" : "bad"}`}><span aria-hidden="true">{v ? "✓" : "✕"}</span>{k}<span className="visually-hidden">{v ? " set" : " missing"}</span></span>)}</div>
+            </li>
+          ))}
+        </ul>
       </section>
     </>
   );

@@ -1,0 +1,100 @@
+<title>Aangan Call Flow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: six labelled columns, three lanes (during the call, after the call, designer loop), one-line notes below. */
+:root{
+  --bg:#FBF8F4; --surface:#FFFFFF; --fg:#1F1B16; --muted:#5E554B; --line:#B9AEA1;
+  --accent:#9A4320; --accent-soft:#FBF1EC; --model:#1F5A8A; --model-soft:#E6EEF6; --lane:#F4EFE8;
+  --sans:"Instrument Sans", ui-sans-serif, system-ui, sans-serif;
+  --mono:"IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#16130F; --surface:#211C17; --fg:#F3EEE7; --muted:#B8AE9F; --line:#5C5249;
+  --accent:#F08A5D; --accent-soft:#2A1C15; --model:#7FB8E8; --model-soft:#1B2A38; --lane:#1C1814; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#16130F; --surface:#211C17; --fg:#F3EEE7; --muted:#B8AE9F; --line:#5C5249;
+  --accent:#F08A5D; --accent-soft:#2A1C15; --model:#7FB8E8; --model-soft:#1B2A38; --lane:#1C1814; color-scheme:dark}
+
+body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:15px;line-height:1.5}
+.wrap{max-width:1200px;margin:0 auto;padding-inline:24px;padding-block:40px 56px;display:grid;gap:28px}
+header{display:grid;gap:6px}
+h1{font-size:26px;font-weight:600;letter-spacing:-0.01em;margin:0;text-wrap:balance}
+header p{margin:0;color:var(--muted);max-width:66ch}
+figure{margin:0;display:grid;gap:12px}
+.scroll{overflow-x:auto;border-radius:12px;background:var(--surface);border:1px solid var(--line)}
+svg{display:block;width:100%;min-width:980px;height:auto;color:var(--fg)}
+figcaption{color:var(--muted);font-size:13px;max-width:80ch}
+
+.box{fill:var(--surface);stroke:var(--line);stroke-width:1.2}
+.box.ghost{fill:none;stroke-dasharray:5 4}
+.box.model{fill:var(--model-soft);stroke:var(--model);stroke-width:1.6}
+.bubble{fill:var(--accent-soft);stroke:var(--accent);stroke-width:1.6;stroke-dasharray:7 5}
+.lane{fill:var(--lane);stroke:none}
+.t{font-family:var(--sans);font-size:14px;font-weight:600;fill:var(--fg)}
+.s{font-family:var(--sans);font-size:11.5px;fill:var(--muted)}
+.h{font-family:var(--mono);font-size:11px;letter-spacing:.14em;fill:var(--fg);font-weight:500}
+.rt{font-family:var(--sans);font-size:12.5px;font-weight:600;fill:var(--muted)}
+.rt.a{fill:var(--accent)}
+.lbl{font-family:var(--mono);font-size:10.5px;fill:var(--muted)}
+.lbl.a{fill:var(--accent)}
+.e{fill:none;stroke:var(--fg);stroke-width:1.3}
+.e.d{stroke:var(--muted);stroke-dasharray:5 4}
+.e.a{stroke:var(--accent);stroke-width:1.6}
+.hd{fill:var(--fg)} .hd.m{fill:var(--muted)} .hd.a{fill:var(--accent)}
+
+.notes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;margin:0;padding:0;list-style:none}
+.notes li{display:grid;gap:4px;min-width:0}
+.notes b{font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.12em;color:var(--muted);text-transform:uppercase}
+@media (max-width:760px){.notes{grid-template-columns:1fr}}
+@media (max-width:460px){.wrap{padding-inline:16px}}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Aangan Call Flow</h1>
+    <p>How an enquiry call becomes a booked consultation, laid out in the six stages: trigger, input, context, processing, AI and output.</p>
+  </header>
+
+  <figure>
+    <div class="scroll">
+      <svg viewBox="0 0 1230 690" role="img" aria-label="Three lanes across six columns: trigger, input, context, processing, AI, output. During the call, inside the closed Vaani bubble, the caller's voice is turned to text and the Vaani agent replies using config pushed before the call. After the call, a webhook brings the transcript to our app, which checks it against Neon history, masks the phone, checks for prices, runs the verdict model and routes every call to the dashboard and qualified leads to Telegram and HubSpot. In the designer loop, a designer claims the lead and picks a slot, Cal.com books it, HubSpot moves the deal and the caller is emailed. No AI makes decisions in that loop.">
+        <defs>
+          <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="hd" d="M0,0 L10,5 L0,10 z"/></marker>
+          <marker id="arm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="hd m" d="M0,0 L10,5 L0,10 z"/></marker>
+          <marker id="ara" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="hd a" d="M0,0 L10,5 L0,10 z"/></marker>
+        </defs>
+<text class="h" x="120.0" y="34" text-anchor="middle">TRIGGER</text>
+<text class="h" x="318.0" y="34" text-anchor="middle">INPUT</text>
+<text class="h" x="516.0" y="34" text-anchor="middle">CONTEXT</text>
+<text class="h" x="714.0" y="34" text-anchor="middle">PROCESSING</text>
+<text class="h" x="912.0" y="34" text-anchor="middle">AI</text>
+<text class="h" x="1110.0" y="34" text-anchor="middle">OUTPUT</text>
+<rect class="bubble" x="16" y="64" width="1198" height="158" rx="18"/>
+<text class="rt a" x="34" y="88">During the call · inside Vaani, nothing gets in</text>
+<rect class="box" x="30" y="104" width="180" height="100" rx="8"/><text class="t" x="120.0" y="143" text-anchor="middle">Caller starts a call</text><text class="s" x="120.0" y="163" text-anchor="middle">“Start test” (WebRTC)</text><text class="s" x="120.0" y="179" text-anchor="middle">studio line later</text><line class="e" x1="211" y1="154.0" x2="225" y2="154.0" marker-end="url(#ar)"/><rect class="box" x="228" y="104" width="180" height="100" rx="8"/><text class="t" x="318.0" y="143" text-anchor="middle">Caller's voice</text><text class="s" x="318.0" y="163" text-anchor="middle">English · Hindi · Marathi</text><text class="s" x="318.0" y="179" text-anchor="middle">number read back</text><line class="e" x1="409" y1="154.0" x2="423" y2="154.0" marker-end="url(#ar)"/><rect class="box" x="426" y="104" width="180" height="100" rx="8"/><text class="t" x="516.0" y="143" text-anchor="middle">Agent config</text><text class="s" x="516.0" y="163" text-anchor="middle">rubric · services.md</text><text class="s" x="516.0" y="179" text-anchor="middle">localities · today's date</text><line class="e" x1="607" y1="154.0" x2="621" y2="154.0" marker-end="url(#ar)"/><rect class="box" x="624" y="104" width="180" height="100" rx="8"/><text class="t" x="714.0" y="143" text-anchor="middle">Speech to text</text><text class="s" x="714.0" y="163" text-anchor="middle">language detection</text><text class="s" x="714.0" y="179" text-anchor="middle">turn-taking</text><line class="e" x1="805" y1="154.0" x2="819" y2="154.0" marker-end="url(#ar)"/><rect class="box model" x="822" y="104" width="180" height="100" rx="8"/><text class="t" x="912.0" y="143" text-anchor="middle">Vaani agent</text><text class="s" x="912.0" y="163" text-anchor="middle">qualifies, never prices</text><text class="s" x="912.0" y="179" text-anchor="middle">calms angry callers</text><line class="e" x1="1003" y1="154.0" x2="1017" y2="154.0" marker-end="url(#ar)"/><rect class="box" x="1020" y="104" width="180" height="100" rx="8"/><text class="t" x="1110.0" y="143" text-anchor="middle">Spoken replies</text><text class="s" x="1110.0" y="163" text-anchor="middle">ends with transcript,</text><text class="s" x="1110.0" y="179" text-anchor="middle">recording and fields</text>
+<path class="e d" d="M516,44 V100" marker-end="url(#arm)"/>
+<text class="lbl" x="524" y="58">pushed before calls</text>
+<path class="e a" d="M1110,204 V240 H120 V294" marker-end="url(#ara)"/>
+<text class="lbl a" x="615" y="233" text-anchor="middle">bubble opens only after the call · webhook, with a 5-min poll as backup</text>
+<rect class="lane" x="16" y="258" width="1198" height="190" rx="18"/>
+<text class="rt" x="34" y="282">After the call · our app on Vercel</text>
+<rect class="box" x="30" y="298" width="180" height="132" rx="8"/><text class="t" x="120.0" y="353" text-anchor="middle">Webhook arrives</text><text class="s" x="120.0" y="373" text-anchor="middle">call_postprocessing</text><text class="s" x="120.0" y="389" text-anchor="middle">or the 5-min poll</text><line class="e" x1="211" y1="364.0" x2="225" y2="364.0" marker-end="url(#ar)"/><rect class="box" x="228" y="298" width="180" height="132" rx="8"/><text class="t" x="318.0" y="353" text-anchor="middle">Transcript + fields</text><text class="s" x="318.0" y="373" text-anchor="middle">recording link</text><text class="s" x="318.0" y="389" text-anchor="middle">call summary</text><line class="e" x1="409" y1="364.0" x2="423" y2="364.0" marker-end="url(#ar)"/><rect class="box" x="426" y="298" width="180" height="132" rx="8"/><text class="t" x="516.0" y="353" text-anchor="middle">Neon history</text><text class="s" x="516.0" y="373" text-anchor="middle">earlier calls by number</text><text class="s" x="516.0" y="389" text-anchor="middle">localities table</text><line class="e" x1="607" y1="364.0" x2="621" y2="364.0" marker-end="url(#ar)"/><rect class="box" x="624" y="298" width="180" height="132" rx="8"/><text class="t" x="714.0" y="353" text-anchor="middle">Clean and check</text><text class="s" x="714.0" y="373" text-anchor="middle">mask phone · price check</text><text class="s" x="714.0" y="389" text-anchor="middle">fix locality spelling</text><line class="e" x1="805" y1="364.0" x2="819" y2="364.0" marker-end="url(#ar)"/><rect class="box model" x="822" y="298" width="180" height="132" rx="8"/><text class="t" x="912.0" y="353" text-anchor="middle">Verdict model</text><text class="s" x="912.0" y="373" text-anchor="middle">five criteria as JSON</text><text class="s" x="912.0" y="389" text-anchor="middle">never sees the phone</text><line class="e" x1="1003" y1="364.0" x2="1017" y2="364.0" marker-end="url(#ar)"/><rect class="box" x="1020" y="298" width="180" height="132" rx="8"/><text class="t" x="1110.0" y="337" text-anchor="middle">Routed in code</text><text class="s" x="1110.0" y="357" text-anchor="middle">every call → dashboard</text><text class="s" x="1110.0" y="373" text-anchor="middle">qualified → Telegram</text><text class="s" x="1110.0" y="389" text-anchor="middle">and a HubSpot deal</text><text class="s" x="1110.0" y="405" text-anchor="middle">email copy via Resend</text>
+<path class="e" d="M1110,430 V466 H120 V520" marker-end="url(#ar)"/>
+<text class="lbl" x="615" y="460" text-anchor="middle">qualified lead only</text>
+<rect class="lane" x="16" y="484" width="1198" height="150" rx="18"/>
+<text class="rt" x="34" y="508">Designer loop · a person confirms the slot</text>
+<rect class="box" x="30" y="524" width="180" height="92" rx="8"/><text class="t" x="120.0" y="559" text-anchor="middle">Telegram card</text><text class="s" x="120.0" y="579" text-anchor="middle">Claim, or Pass</text><text class="s" x="120.0" y="595" text-anchor="middle">with a reason</text><line class="e" x1="211" y1="570.0" x2="225" y2="570.0" marker-end="url(#ar)"/><rect class="box" x="228" y="524" width="180" height="92" rx="8"/><text class="t" x="318.0" y="559" text-anchor="middle">Slot the designer picks</text><text class="s" x="318.0" y="579" text-anchor="middle">from the caller's</text><text class="s" x="318.0" y="595" text-anchor="middle">preferred windows</text><line class="e" x1="409" y1="570.0" x2="423" y2="570.0" marker-end="url(#ar)"/><rect class="box" x="426" y="524" width="180" height="92" rx="8"/><text class="t" x="516.0" y="559" text-anchor="middle">Cal.com availability</text><text class="s" x="516.0" y="579" text-anchor="middle">the designer's</text><text class="s" x="516.0" y="595" text-anchor="middle">own calendar</text><line class="e" x1="607" y1="570.0" x2="621" y2="570.0" marker-end="url(#ar)"/><rect class="box" x="624" y="524" width="180" height="92" rx="8"/><text class="t" x="714.0" y="559" text-anchor="middle">Create the booking</text><text class="s" x="714.0" y="579" text-anchor="middle">Cal.com API</text><text class="s" x="714.0" y="595" text-anchor="middle">after the call</text><line class="e" x1="805" y1="570.0" x2="819" y2="570.0" marker-end="url(#ar)"/><rect class="box ghost" x="822" y="524" width="180" height="92" rx="8"/><text class="t" x="912.0" y="559" text-anchor="middle">No AI here</text><text class="s" x="912.0" y="579" text-anchor="middle">people decide</text><text class="s" x="912.0" y="595" text-anchor="middle">time and money</text><line class="e" x1="1003" y1="570.0" x2="1017" y2="570.0" marker-end="url(#ar)"/><rect class="box" x="1020" y="524" width="180" height="92" rx="8"/><text class="t" x="1110.0" y="559" text-anchor="middle">Consultation booked</text><text class="s" x="1110.0" y="579" text-anchor="middle">HubSpot stage moves</text><text class="s" x="1110.0" y="595" text-anchor="middle">caller gets an email</text>
+<line class="e d" x1="30" y1="664" x2="62" y2="664"/>
+<text class="lbl" x="72" y="668">every 5 min on GitHub Actions: SLA check (15 min → front desk lead, 30 min → Nikhil) · Vaani poll · health check of Neon, Vaani, HubSpot, Telegram, Resend → alert on Telegram</text>
+      </svg>
+    </div>
+    <figcaption>The dashed orange boundary is the closed call: config goes in before the call, and nothing else crosses until the transcript comes out at the end. Blue boxes are the only two places an AI model runs. The model fills in the five criteria; code decides where each lead goes.</figcaption>
+  </figure>
+
+  <ul class="notes">
+    <li><b>During the call</b><span>Everything the agent knows comes from the Vaani dashboard, including today's date, which is refreshed every night.</span></li>
+    <li><b>After the call</b><span>Every completed call shows up on the dashboard with its recording and transcript. Only qualified leads go to Telegram and HubSpot.</span></li>
+    <li><b>Designer loop</b><span>A designer claims the lead and picks one of the caller's windows. Cal.com books it, and the HubSpot deal moves to "Consultation booked".</span></li>
+  </ul>
+</div>
